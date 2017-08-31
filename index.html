@@ -1,0 +1,311 @@
+
+<!DOCTYPE html>
+<meta charset="utf-8">
+  <style>
+    
+    body {
+      font: 10px sans-serif;
+    }
+    
+    .axis path,
+    .axis line {
+      fill: none;
+      stroke: #000;
+      shape-rendering: crispEdges;
+    }
+    
+    .x.axis path {
+      display: none;
+    }
+    
+    .line {
+      fill: none;
+      stroke: steelblue;
+      stroke-width: 1.5px;
+    }
+    .chart rect {
+      stroke: white;
+      fill: steelblue;
+    }
+    </style>
+  <title>Telemetry Data Viewer</title>
+  <body>
+    <script src="d3.v3.js"></script>
+    <script type="text/javascript" src="buffer-loader.js"></script>
+    
+    <script>
+      
+      var margin = {top: 20, right: 20, bottom: 30, left: 50},
+      width = 800 - margin.left - margin.right,
+      height = 300 - margin.top - margin.bottom;
+      
+      var x = d3.scale.linear()
+      .range([0, width]);
+      
+      var y = d3.scale.linear()
+      .range([height, 0]);
+      
+      var xAxis = d3.svg.axis()
+      .scale(x)
+      .orient("bottom");
+      
+      var yAxis = d3.svg.axis()
+      .scale(y)
+      .orient("left");
+      
+      var line = d3.svg.line()
+      .x(function(d) { return x(d.distance); })
+      .y(function(d) { return y(d.velocity); });
+      
+      var svg = d3.select("body").append("svg")
+      .attr("width", width + margin.left + margin.right)
+      .attr("height", height + margin.top + margin.bottom)
+      .append("g")
+      .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+      
+      d3.json("senna_2.json", function(error, data) {
+              console.log(data.forEach);
+              
+              x.domain(d3.extent(data, function(d) { return d.distance; }));
+              y.domain(d3.extent(data, function(d) { return d.velocity; }));
+              
+              svg.append("g")
+              .attr("class", "x axis")
+              .attr("transform", "translate(0," + height + ")")
+              .call(xAxis);
+              
+              svg.append("g")
+              .attr("class", "y axis")
+              .call(yAxis)
+              .append("text")
+              .attr("transform", "rotate(-90)")
+              .attr("y", 6)
+              .attr("dy", ".71em")
+              .style("text-anchor", "end")
+              .text("Speed(KPH)");
+
+              svg.append("path")
+              .attr("class", "line");
+              
+             });
+      
+      </script>
+    
+<style>
+  #visualizer{
+    font-family:"Verdana";
+  }
+  #v_velocity{
+    font-size:50pt;
+  }
+  #v_velocity_label{
+    font-size:20pt;
+  }
+  #v_gear{
+    font-size:30pt;
+  }
+  #v_rotate{
+    font-size:25pt;
+    text-align:right;
+  }
+  #v_rotate_label{
+    font-size:11pt;
+  }
+</style>
+
+    <svg id="visualizer">
+      <rect id="v_rotate_background" x="50" y="130" fill="darkyellow" width="200" height="10" />
+      <rect id="v_rotate_bar" x="50" y="130" fill="yellow" width="200" height="10" />
+      <rect id="v_throttle_background" x="50" y="140" fill="darkgreen" width="200" height="20" />
+      <rect id="v_throttle" x="50" y="140" fill="limegreen" width="200" height="20" />
+      <rect id="v_brake_background" x="50" y="160" fill="darkred" width="200" height="20" />
+      <rect id="v_brake" x="50" y="160" fill="red" width="200" height="20" />
+      <text id="v_velocity" x="55" y="90">888</text>
+      <text id="v_velocity_label" x="195" y="90">KPH</text>
+      <text id="v_gear" x="55" y="125">8</text>
+      <text id="v_rotate" x="100" y="123">88888</text>
+      <text id="v_rotate_label" x="215" y="123">RPM</text>
+    </svg>
+
+    <table>
+      <tr><td>velocity</td><td><span id="s_velocity"></span> kph</td></tr>
+      <tr><td>throttle</td><td><span id="s_throttle"></span> %</td></tr>
+      <tr><td>brake</td><td><span id="s_brake"></span></td></tr>
+      <tr><td>distance</td><td><span id="s_distance"></span> metre</td></tr>
+      <tr><td>gear</td><td><span id="s_gear"></span></td></tr>
+      <tr><td>rotate</td><td><span id="s_rotate"></span> rpm</td></tr>
+      <tr><td>Gforce</td><td><span id="s_gforce"></span></td></tr>
+    </table>
+
+
+
+    <script>
+      
+      function update_telemetry( dataIndex ){
+        var i,displayObj;
+        var displayObjs = {
+          velocity : document.getElementById('s_velocity'),
+          throttle : document.getElementById('s_throttle'),
+          brake : document.getElementById('s_brake'),
+          distance : document.getElementById('s_distance'),
+          gear : document.getElementById('s_gear'),
+          rotate : document.getElementById('s_rotate'),
+          gforce : document.getElementById('s_gforce')
+        };
+        var displayObjKeys = [
+                              'velocity',
+                              'throttle',
+                              'brake',
+                              'distance',
+                              'gear',
+                              'rotate',
+                              'gforce'
+                              ];
+        var lastVelocity = global_telemetry_data[dataIndex-1]['velocity'];//インデックス飛びだし割り切り
+        var currentVelocity = global_telemetry_data[dataIndex]['velocity'];
+        var gforce = Math.floor((1000*(lastVelocity - currentVelocity)/60/60)/(98.041/global_telemetry_data.length)/9.8*10)/10;
+        var throttle = global_telemetry_data[dataIndex]['throttle'];
+        var outputData = {};
+        for(i=0;i<displayObjKeys.length;i++){
+          var inputColumnData = global_telemetry_data[dataIndex][displayObjKeys[i]];
+          switch(displayObjKeys[i]){
+            case 'velocity':
+            case 'throttle':
+            case 'rotate':
+              outputData[displayObjKeys[i]] = Math.floor(inputColumnData);
+              break;
+            case 'distance':
+              outputData[displayObjKeys[i]] = Math.floor(inputColumnData * 5807);
+              break;
+            case 'brake':
+              outputData[displayObjKeys[i]] = ( throttle < 60 && gforce > 0.7 ? 'T' : 'F' );
+              break;
+            case 'gforce':
+              outputData[displayObjKeys[i]] = gforce;
+              break;
+            default:
+              outputData[displayObjKeys[i]] = inputColumnData;
+              break;
+          }
+          displayObj = displayObjs[displayObjKeys[i]];
+          displayObj.innerHTML = outputData[displayObjKeys[i]];
+          
+          d3.select("path.line")
+          .datum(global_telemetry_data.slice(0,dataIndex))
+          .attr("d", line);
+
+        }
+        // update SVG
+        document.getElementById('v_velocity').textContent = outputData['velocity'];
+        document.getElementById('v_rotate').textContent = outputData['rotate'];
+        document.getElementById('v_gear').textContent = outputData['gear'];
+        document.getElementById('v_brake').setAttribute( "width", ( outputData['brake'] == 'T'? "200px": "0" ));
+        document.getElementById('v_throttle').setAttribute("width", Math.floor( outputData['throttle'] / 100 * 200) + "px" );
+        document.getElementById('v_rotate_bar').setAttribute("width", Math.floor( outputData['rotate'] / 14000 * 200) + "px" );
+
+        var newBias = global_telemetry_data[dataIndex].rotate / 13000;
+        global_audio_controller.updateFreq( newBias );
+      }
+      function telemetryDataView(inputMaxNum){
+        var dataIndex = 0;
+        var currentTime = 0;
+        var startTime = 0;
+        var lapTime = 1 * 60 * 1000 + 38 * 1000 + 41 ;
+        var maxNum = inputMaxNum;
+        return {
+          next : function(){
+            currentTime = (new Date()).getTime();
+            if( startTime == 0 ) startTime = currentTime;
+            dataIndex = Math.floor( (currentTime - startTime) / lapTime * maxNum );
+            //        console.log(dataIndex);
+            if(dataIndex >= maxNum){
+              dataIndex = maxNum - 1;
+              startTime = currentTime;
+            }
+            update_telemetry(dataIndex);
+          }
+        }
+      }
+      
+      var global_telemetry_data = null;
+      var global_view = null;
+      var global_audio_controller = sound2();
+      
+      d3.json("senna_2.json",
+              function(error, data) {
+              var i ;
+              global_telemetry_data = data;
+              global_view = telemetryDataView(data.length);
+              initVisualize();
+              setInterval( global_view.next, 25 );
+              }
+              );
+      
+      function sound(){
+        var context = new AudioContext();
+        var oscillator = context.createOscillator();
+        var baseFreq = 1000;
+        oscillator.type = 0;
+        oscillator.frequency.value = baseFreq;
+        oscillator.connect(context.destination);
+        oscillator.noteOn(0);
+        return {
+          updateFreq : function( newBias ){
+            oscillator.frequency.value = Math.floor( baseFreq * newBias );
+          }
+        }
+      }
+      function sound2(){
+        var context = new AudioContext();
+        var source = context.createBufferSource();
+        var gain = context.createGain();
+        var bufferLoader = new BufferLoader(context,['./v10.mp3' ],function(){console.log("finish load.");source.buffer = bufferLoader.bufferList[0];source.start();});
+        bufferLoader.load();
+        
+        source.loop = true;
+        gain.gain.value = 0.2;
+        source.connect(gain);
+        gain.connect(context.destination);
+        return {
+          updateFreq : function( newFreq ){
+            source.playbackRate.value = newFreq;
+          }
+        }
+      }
+      
+      function initVisualize(){
+        var chart = d3.select("body").append("svg")
+        .attr("class", "chart")
+        .attr("width", 420)
+        .attr("height", 100);
+        var x = d3.scale.linear()
+        .domain([0, 100])
+        .range([0, 420]);
+        chart.selectAll("rect")
+        .data(global_telemetry_data)
+        .enter().append("rect")
+        .attr("y", function(d, i) { return i * 10; })
+        .attr("width", function(d,i){return d['velocity']})
+        .attr("height", 10);
+      }
+      
+      </script>
+    <!--iframe width="560" height="315" src="//www.youtube.com/embed/IL_fMVSmIj4" frameborder="0" allowfullscreen></iframe-->
+
+    <script type="text/javascript">
+      
+      var _gaq = _gaq || [];
+      _gaq.push(['_setAccount', 'UA-2226611-2']);
+      _gaq.push(['_trackPageview']);
+      
+      (function() {
+       var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+       ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+       var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+       })();
+      
+      </script>
+
+  </body>
+  </html>
+  
